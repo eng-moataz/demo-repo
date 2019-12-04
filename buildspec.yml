@@ -1,5 +1,5 @@
 # AWS CodeBuild buildspec to build the nginx alpine image
-# By Jason Umiker (jason.umiker@gmail.com)
+# By Moataz Gaber (moagaber@amazon.com)
 
 # This requires the following environment variables be set on the Project:
 # AWS_DEFAULT_REGION (Supplied by CodeBuild)
@@ -17,8 +17,11 @@ phases:
     commands:
       - echo Logging in to Amazon ECR...
       - $(aws ecr get-login --no-include-email --region $AWS_DEFAULT_REGION)
+      - echo "Image tag is $IMAGE_TAG"
       - CODEBUILD_RESOLVED_SOURCE_VERSION="${CODEBUILD_RESOLVED_SOURCE_VERSION:-$IMAGE_TAG}"
+      - echo $CODEBUILD_RESOLVED_SOURCE_VERSION
       - IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+      - echo "Image tag after is $IMAGE_TAG"
       - IMAGE_URI="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG"
   build:
     commands:
@@ -31,6 +34,6 @@ phases:
       - echo Build stage successfully completed on `date`
       - echo Pushing the Docker image...
       - docker push $IMAGE_URI
-      - printf '[{"name":"nginx","imageUri":"%s"}]' "$IMAGE_URI" > images.json
+      - printf '[{"name":"demo","imageUri":"%s"}]' "$IMAGE_URI" > images.json
 artifacts:
   files: images.json
