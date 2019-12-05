@@ -194,7 +194,17 @@ def application(environ, start_response):
             logger.warning('Error retrieving request body for async work.')
         response = ''
     else:
-        response = welcome
+      if method == 'GET'
+         try:
+            if path == '/':
+              response = welcome
+            else:
+              f=str(path)
+              filename=f.replace('/','')
+              contents=open(filename,”r”)
+              response =  contents.read()
+         except (TypeError, ValueError):
+            logger.warning('Error reading file')
     status = '200 OK'
     headers = [('Content-type', 'text/html')]
 
