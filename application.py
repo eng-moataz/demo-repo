@@ -1,5 +1,6 @@
 import logging
 import logging.handlers
+import os
 
 from wsgiref.simple_server import make_server, WSGIServer
 from SocketServer import ThreadingMixIn
@@ -199,9 +200,12 @@ def application(environ, start_response):
             if path == '/':
               response = welcome
             else:
+              dir_path = os.path.dirname(os.path.realpath(__file__))
               f=str(path)
               filename=f.replace('/','')
-              contents=open(filename,"r")
+              location=os.path.join(dir_path, filename)
+              print(location)
+              contents=open(location,"r")
               response =  contents.read()
          except (TypeError, ValueError):
             logger.warning('Error reading file')
