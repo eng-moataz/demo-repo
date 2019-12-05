@@ -206,6 +206,6 @@ class ThreadingWSGIServer(ThreadingMixIn, WSGIServer):
     pass
 
 if __name__ == '__main__':
-    httpd = make_server('', 8000, application, ThreadingWSGIServer)
-    print "Serving on port 8000..."
+    httpd = make_server('', 80, application, ThreadingWSGIServer)
+    print "Serving on port 80..."
     httpd.serve_forever()

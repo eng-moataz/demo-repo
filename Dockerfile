@@ -4,7 +4,7 @@ FROM python:2.7
 ADD application.py /tmp/application.py
 ADD Tab* /tmp/
 
-EXPOSE 8000
+EXPOSE 80
 
 # Run it
 ENTRYPOINT ["python", "/tmp/application.py"]
