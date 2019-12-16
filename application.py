@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 # Handler 
-LOG_FILE = '/dev/stdout'
+LOG_FILE = 'var/log/sample1.log'
 handler = logging.handlers.RotatingFileHandler(LOG_FILE, maxBytes=1048576, backupCount=5)
 handler.setLevel(logging.INFO)
 
@@ -207,7 +207,7 @@ def application(environ, start_response):
     headers = [('Content-type', 'text/html')]
 
     start_response(status, headers)
-    logger.info("%s %s %s %s", 'python', status,environ['REQUEST_METHOD'],environ['PATH_INFO'])
+    logger.info("%s %s %s %s",'python', status,environ['REQUEST_METHOD'],environ['PATH_INFO'])
     return [response]
 
 class ThreadingWSGIServer(ThreadingMixIn, WSGIServer): 
