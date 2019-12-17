@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 # Handler 
-LOG_FILE = '/dev/stdout'
+LOG_FILE = '/var/log/sample1.log'
 handler = logging.handlers.RotatingFileHandler(LOG_FILE, maxBytes=1048576, backupCount=5)
 handler.setLevel(logging.INFO)
 
@@ -59,7 +59,7 @@ welcome = """
     text-shadow: #fff 0px 0px 25px;
   }
   a {
-    color: green;
+    color: blue;
   }
   .textColumn, .linksColumn {
     padding: 2em;
