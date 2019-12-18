@@ -59,7 +59,7 @@ welcome = """
     text-shadow: #fff 0px 0px 25px;
   }
   a {
-    color: purple;
+    color: red;
   }
   .textColumn, .linksColumn {
     padding: 2em;
