@@ -1,0 +1,28 @@
+# AWS CodeBuild buildspec to build the nginx alpine image
+# By Moataz Gaber (moagaber@amazon.com)
+
+# This requires the following environment variables be set on the Project:
+# AWS_DEFAULT_REGION (Supplied by CodeBuild)
+# AWS_ACCOUNT_ID
+# IMAGE_REPO_NAME
+# IMAGE_TAG
+
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 10
+  build:
+    commands:
+      - echo Building the Analytics App...
+      - cd $CODEBUILD_SRC_DIR/AnalyticsApp
+      - sed -ig "s|REGION_VAR|$REGION|" src/config.js
+      - sed -ig "s|USER_POOL_ID_VAR|$USER_POOL_ID|" src/config.js
+      - sed -ig "s|APP_CLIENT_ID_VAR|$APP_CLIENT_ID|" src/config.js
+      - sed -ig "s|IDENTITY_POOL_ID_VAR|$IDENTITY_POOL_ID|" src/config.js
+      - sed -ig "s|URL_VAR|$URL|" src/config.js
+      - sed -ig "s|NAME_VAR|$APINAME|" src/config.js
+      - npm install
+      - npm react-scripts build
+      - aws s3 sync build/ s3://$S3_BUCKET/
