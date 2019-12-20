@@ -17,7 +17,9 @@ phases:
     commands:
       - echo Building the Analytics App...
       - cd $CODEBUILD_SRC_DIR/AnalyticsApp
-      - sed -ig "s|REGION_VAR|$REGION|" src/config.js
+      - pwd
+      - ls
+      - sed -ig "s|REGION_VAR|$REGION|" $CODEBUILD_SRC_DIR/AnalyticsApp/src/config.js
       - sed -ig "s|USER_POOL_ID_VAR|$USER_POOL_ID|" src/config.js
       - sed -ig "s|APP_CLIENT_ID_VAR|$APP_CLIENT_ID|" src/config.js
       - sed -ig "s|IDENTITY_POOL_ID_VAR|$IDENTITY_POOL_ID|" src/config.js
