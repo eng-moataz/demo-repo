@@ -1,0 +1,57 @@
+{
+  "name": "new-scan-app-v1",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@testing-library/jest-dom": "^4.2.4",
+    "@testing-library/react": "^9.3.2",
+    "@testing-library/user-event": "^7.1.2",
+    "amazon-cognito-identity-js": "^3.2.0",
+    "aws-amplify": "^2.2.0",
+    "aws-amplify-react": "^3.1.1",
+    "bootstrap": "^4.4.1",
+    "chart.js": "^2.9.3",
+    "json": "^9.0.6",
+    "jwt-decode": "^2.2.0",
+    "lodash": "^4.17.15",
+    "react": "^16.12.0",
+    "react-bootstrap": "^1.0.0-beta.16",
+    "react-chartjs-2": "^2.8.0",
+    "react-dom": "^16.12.0",
+    "react-loader-spinner": "^3.1.5",
+    "react-router-dom": "^5.1.2",
+    "react-scripts": "3.3.0",
+    "reactstrap": "^8.2.0",
+    "styled-components": "^4.4.1",
+    "uuid": "^3.3.3",
+    "validator": "^12.1.0"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "eslintConfig": {
+    "extends": "react-app"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "@types/jwt-decode": "^2.2.1",
+    "@types/reactstrap": "^8.2.0",
+    "@types/styled-components": "^4.4.0",
+    "@types/uuid": "^3.4.6",
+    "@types/validator": "^12.0.1"
+  }
+}
