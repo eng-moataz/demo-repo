@@ -1,6 +1,6 @@
 import React from 'react';
 import { Authenticator } from 'aws-amplify-react';
-import { browserHistory, Router, Route, IndexRoute } from 'react-router';
+import { browserHistory, Router, Route } from 'react-router';
 import Home from './Home';
 import { ConfirmSignIn, ForgotPassword, RequireNewPassword, SignIn, withAuthenticator,  } from 'aws-amplify-react';
 
@@ -16,7 +16,7 @@ class App extends React.Component {
   <Authenticator>
     <Router history={browserHistory}>
         <Route path='/' component={App}>
-            <IndexRoute component={Home} />
+            <Route exact path="/"  component={Home} />
         </Route>
     </Router>
   </Authenticator>
