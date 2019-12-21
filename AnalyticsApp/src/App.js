@@ -18,7 +18,7 @@ class App extends React.Component {
       <Router history={history}>
         <div>
           <Switch>
-              <Route exact path='/home' component={Home}/>
+              <Route exact path='/index.html' component={Home}/>
           </Switch>
         </div>
        </Router>
