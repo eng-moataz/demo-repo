@@ -17,7 +17,7 @@ class App extends React.Component {
   <Authenticator>
       <Router history={history}>
         <div>
-          <h1>hello from home</h1>
+          <h1>hello from home v1</h1>
           <Switch>
               <Route exact path='/index.html' component={Home}/>
           </Switch>
