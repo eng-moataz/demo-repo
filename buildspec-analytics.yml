@@ -25,4 +25,5 @@ phases:
       - sed -ig "s|NAME_VAR|$APINAME|" src/config.js
       - npm install
       - npm run-script build
+      - echo the bucket now is $S3_BUCKET
       - aws s3 sync build/ s3://$S3_BUCKET/
