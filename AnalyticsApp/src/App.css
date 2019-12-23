@@ -56,3 +56,17 @@
   height: 50%;
   width: 50%;
 }
+
+.Images {
+  margin: 0 auto;
+  position: relative;
+  width: 250px;
+  display: block;
+}
+
+.Container {
+  margin: 0 auto;
+  position:relative;
+  width: 50%;
+  text-align: center;
+}

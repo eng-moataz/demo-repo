@@ -1,5 +1,4 @@
 import React from 'react';
-import './App.css';
 import DoughnutChart from './DoughnutChart';
 import BarChart from './BarChart';
 
