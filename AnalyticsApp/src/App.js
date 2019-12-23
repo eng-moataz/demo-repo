@@ -2,7 +2,7 @@ import React from 'react';
 import { Authenticator } from 'aws-amplify-react';
 import { Route, Switch, Router } from 'react-router-dom';
 import Home from './Home';
-import history from './history';
+//import history from './history';
 import { ConfirmSignIn, ForgotPassword, RequireNewPassword, SignIn, withAuthenticator,  } from 'aws-amplify-react';
 
 class App extends React.Component {
@@ -15,11 +15,11 @@ class App extends React.Component {
  render(){
   return (
   <Authenticator>
-      <Router history={history}>
+      <Router>
         <div>
-          <h1>hello from home v2</h1>
+          <h1>hello from home v3</h1>
           <Switch>
-              <Route exact path='/index.html' component={Home}/>
+              <Route exact path='/' component={Home}/>
           </Switch>
         </div>
        </Router>
