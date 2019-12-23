@@ -18,9 +18,7 @@ class App extends React.Component {
       <Router>
         <div>
           <h1>hello from home v3</h1>
-          <Switch>
               <Route exact path='/' component={Home}/>
-          </Switch>
         </div>
        </Router>
   </Authenticator>
