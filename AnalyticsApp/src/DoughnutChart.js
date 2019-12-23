@@ -24,7 +24,7 @@ class DoughnutChart extends React.Component {
     this.getDataFromAPI();
     setInterval(() => {
       this.getDataFromAPI();
-    }, 1000);
+    }, 30000);
     }
 
 getColor(key, object) {
