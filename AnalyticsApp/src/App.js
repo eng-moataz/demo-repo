@@ -19,7 +19,7 @@ class App extends React.Component {
     <Router>
       <div>
         <Route exact path='/' component={Home}/>
-        <Route component={NotFound}/>
+        <Route path='*' exact={true} component={NotFound}/>
       </div>
     </Router>
   </Authenticator>
