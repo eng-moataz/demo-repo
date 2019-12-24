@@ -1,6 +1,6 @@
 import React from 'react';
 import { Authenticator } from 'aws-amplify-react';
-import { BrowserRouter as Router, Route } from "react-router-dom";
+import { BrowserRouter as Router, Route, Switch } from "react-router-dom";
 import Home from './Home';
 import { ConfirmSignIn, ForgotPassword, RequireNewPassword, SignIn, withAuthenticator,  } from 'aws-amplify-react';
 import NotFound from './NotFound';
@@ -18,9 +18,11 @@ class App extends React.Component {
   <Authenticator>
     <Router>
       <div>
+      <Switch>
         <Route exact path='/' component={Home}/>
-        <Route path='*' exact={true} component={NotFound}/>
+        <Route component={NotFound}/>
       </div>
+      </Switch>
     </Router>
   </Authenticator>
   );
