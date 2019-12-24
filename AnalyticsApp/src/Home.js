@@ -13,6 +13,7 @@ constructor(props){
 
 render(){	return(
 	<div className="Home">
+	     <h1> Analytics Dashboard </h1>
          <DoughnutChart />
          <BarChart />
      </div>

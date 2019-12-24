@@ -21,8 +21,8 @@ class App extends React.Component {
       <Switch>
         <Route exact path='/' component={Home}/>
         <Route component={NotFound}/>
-      </div>
       </Switch>
+      </div>
     </Router>
   </Authenticator>
   );
