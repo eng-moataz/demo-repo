@@ -24,7 +24,7 @@ class DoughnutChart extends React.Component {
     this.getDataFromAPI();
     setInterval(() => {
       this.getDataFromAPI();
-    }, 30000);
+    }, 1000);
     }
 
 getColor(key, object) {
@@ -82,7 +82,12 @@ getColor(key, object) {
       var state={};
       for (const [key, value] of Object.entries(reply)) {
                labels.push(key);
+               if(key == '/'){
+                 data.push(Math.round(value/10));
+               }
+               else{
                data.push(value);
+               }
                backgroundColor.push(this.getColor(key,"colorPerPage"));
                hoverBackgroundColor.push(this.getColor(key,"hoverColorPage"));
             }
@@ -97,10 +102,23 @@ getColor(key, object) {
     const loading = this.state.Loading;
     const height=200;
     const width=200;
+    const Dheight=300;
+    const Dwidth=300;
     return(
         <div className="DoghnutChart">
                <h2>Top Pages Stream</h2>
-                { loading ? <Loader className="LoaderClass" type="ThreeDots" color="#B8E9E8" height={height} width={width} /> : <Doughnut data={this.state.currentstate} /> }
+                { loading ? <Loader className="LoaderClass" type="ThreeDots" color="#B8E9E8" height={height} width={width} /> : <Doughnut 
+                    
+                   data={this.state.currentstate} 
+                   options={{
+                    elements: {
+                    arc: {
+                        borderWidth: 0
+                      } 
+                   },
+                 }}
+                /> }
+
         </div>    
       );
   }
