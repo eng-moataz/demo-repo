@@ -1,0 +1,66 @@
+Parameters:
+  GitHubUser:
+     Type: String
+  GitHubAccessToken:
+     Type: String
+  GitHubRepo:
+     Type: String
+  UserName:
+     Type: String
+  UserEmail:
+     Type: String
+Resources:
+   InfrastructureTemplate:
+     Type: AWS::CloudFormation::Stack
+     Properties:
+       TemplateURL: ./Infrastructure_Template/Infra.yaml
+
+   CICDTemplate:
+     Type: AWS::CloudFormation::Stack
+     Properties:
+       TemplateURL: ./CI_CD/CI_CD.yaml
+       Parameters:
+         GitHubUser: !Ref GitHubUser
+         GitHubAccessToken: !Ref GitHubAccessToken
+         GitHubRepo: !Ref GitHubRepo
+         ClusterName: !GetAtt InfrastructureTemplate.Outputs.ClusterName
+         ServiceName: !GetAtt InfrastructureTemplate.Outputs.ServiceName
+
+   CognitoTemplate:
+     Type: AWS::CloudFormation::Stack
+     Properties:
+       TemplateURL: ./Analytics_Required_Resources/Cognito/Cognito.yaml
+       Parameters:
+          UserName: !Ref UserName
+          UserEmail: !Ref UserEmail
+
+   ApiLambdaTemplate:
+     Type: AWS::CloudFormation::Stack
+     Properties:
+       TemplateURL: ./Analytics_Required_Resources/api_lambda/api_lambda.yaml
+       Parameters:
+          AuthenticatedUserRoleName: !GetAtt CognitoTemplate.Outputs.AuthenticatedUserRoleName
+          UnauthenticatedUserRoleName: !GetAtt CognitoTemplate.Outputs.UnauthenticatedUserRoleName
+          UserPoolID: !GetAtt CognitoTemplate.Outputs.UserPoolID
+          MetricTable: !GetAtt KinesisTemplate1.Outputs.MetricTable
+
+   KinesisTemplate1:
+     Type: AWS::CloudFormation::Stack
+     Properties:
+       TemplateURL: ./Analytics_Required_Resources/Kinesis/Kinesis.yaml
+       Parameters:
+          CWLogGroupName: !GetAtt InfrastructureTemplate.Outputs.CWLogGroupName
+
+   AnalyticsTemplate:
+     Type: AWS::CloudFormation::Stack
+     Properties:
+       TemplateURL: ./Analytics_Required_Resources/AnalyticsApp/AnalyticsApp.yaml
+       Parameters:
+         GitHubUser: !Ref GitHubUser
+         GitHubAccessToken: !Ref GitHubAccessToken
+         GitHubRepo: !Ref GitHubRepo
+         USERPOOLID: !GetAtt CognitoTemplate.Outputs.UserPoolID
+         APPCLIENTID: !GetAtt CognitoTemplate.Outputs.AppClientId
+         IDENTITYPOOLID: !GetAtt CognitoTemplate.Outputs.IdentityPoolId
+         URL: !GetAtt ApiLambdaTemplate.Outputs.RootUrl
+         APINAME: !GetAtt ApiLambdaTemplate.Outputs.ApiName

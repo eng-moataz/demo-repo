@@ -1,0 +1,9 @@
+Instructions Steps
+==================
+1- create a bucket in the region
+2- Dowload the folder provided and unzip it
+3- extract it and maske sure aws cli installed and configured
+4- run this command
+aws cloudformation --region <region> --template-file ./demo_cloudformation.yaml --s3-bucket <bucket-name> --s3-prefix Artifacts --output-template-file final_stack.yaml
+5- deploy cloudformation stack
+aws cloudformation --region eu-west-1 deploy --template-file final_stack.yaml --stack-name <YOUR STACK NAME> --capabilities CAPABILITY_NAMED_IAM --parameter-overrides --parameter-overrides "GitHubUser=<github username>" "GitHubRepo=<Hithub-Repo>" "GitHubAccessToken=<Git-Hub-Token>" "UserName=<analytics-dashboard-Admin>" "UserEmail=<AnalyticsDashborad-Admin-Email>"
