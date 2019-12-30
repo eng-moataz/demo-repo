@@ -1,0 +1,189 @@
+Parameters:
+  UserName:
+    Description: The username of the user you want to create in Amazon Cognito for
+      dashboard access.
+    Type: String
+    AllowedPattern: ^(?=\s*\S).*$
+    ConstraintDescription: ' cannot be empty'
+  UserEmail:
+    Type: String
+    Description: "Email address for dashboard user. After successfully launching this
+        solution, you will receive an email with instructions to log in."
+    AllowedPattern: ^[_A-Za-z0-9-\+]+(\.[_A-Za-z0-9-]+)*@[A-Za-z0-9-]+(\.[A-Za-z0-9]+)*(\.[A-Za-z]{2,})$
+
+Resources:
+  # Cognito for Dashboard Users
+  CognitoUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: real-time-web-analytics-user-pool
+      AliasAttributes:
+        - email
+      AutoVerifiedAttributes:
+        - email
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: True
+        InviteMessageTemplate:
+          EmailMessage:
+            !Sub |
+              <p>You are invited to join the Real-Time Web Analytics dashboard. Your dashboard credentials are as follows:</p>
+              <p>
+              Username: <strong>{username}</strong><br />
+              Password: <strong>{####}</strong>
+              </p>
+              <p>
+              Please sign in to the dashboard with the user name and your temporary password provided above at: <br />
+              http://localhost:3000
+              </p>
+          EmailSubject: "Your Real-Time Web Analytics Dashboard Login"
+        UnusedAccountValidityDays: 7
+      EmailVerificationMessage:
+        !Sub |
+          <p>You are invited to join the Real-Time Web Analytics dashboard. Your dashboard credentials are as follows:</p>
+          <p>
+          Username: <strong>{username}</strong><br />
+          Password: <strong>{####}</strong>
+          </p>
+          <p>
+          Please sign in to the dashboard with the user name and temporary password provided above at: <br />
+          http://localhost:3000
+          </p>
+      EmailVerificationSubject: "Your Real-Time Web Analytics Dashboard Login"
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireLowercase: True
+          RequireNumbers: True
+          RequireSymbols: False
+          RequireUppercase: True
+      Schema:
+        - AttributeDataType: String
+          Name: email
+          Required: True
+
+  CognitoUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: real-time-account-activity-report
+      GenerateSecret: False
+      WriteAttributes:
+        - address
+        - email
+        - phone_number
+      ReadAttributes:
+        - name
+        - email
+        - email_verified
+        - address
+        - phone_number
+        - phone_number_verified
+      RefreshTokenValidity: 1
+      UserPoolId: !Ref CognitoUserPool
+
+  CognitoIdentityPool:
+    Type: AWS::Cognito::IdentityPool
+    Properties:
+      IdentityPoolName: Realtime_Account_Activity_Pool
+      CognitoIdentityProviders:
+        - ClientId: !Ref CognitoUserPoolClient
+          ProviderName: !GetAtt CognitoUserPool.ProviderName
+      AllowUnauthenticatedIdentities: false
+
+  CognitoIdentityPoolRoleAttachment:
+    Type: AWS::Cognito::IdentityPoolRoleAttachment
+    Properties:
+      IdentityPoolId: !Sub '${CognitoIdentityPool}'
+      Roles:
+        unauthenticated: !GetAtt UnauthenticatedUserRole.Arn
+        authenticated: !GetAtt AuthenticatedUserRole.Arn
+
+  AuthenticatedUserRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated:
+               - cognito-identity.amazonaws.com
+            Action:
+              - sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                cognito-identity.amazonaws.com:aud: !Sub '${CognitoIdentityPool}'
+              ForAnyValue:StringLike:
+                cognito-identity.amazonaws.com:amr: authenticated
+      Path: /
+      Policies:
+        - PolicyName: root
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - cognito-sync:*
+                  - cognito-identity:*
+                Resource: !Sub 'arn:aws:cognito-identity:${AWS::Region}:${AWS::AccountId}:identitypool/${CognitoIdentityPool}'
+              - Effect: Allow
+                Action:
+                  - execute-api:Invoke
+                  - execute-api:InvalidateCache
+                Resource: '*'
+
+  UnauthenticatedUserRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated:
+                - cognito-identity.amazonaws.com
+            Action:
+              - sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                "cognito-identity.amazonaws.com:aud": !Ref CognitoIdentityPool
+              ForAnyValue:StringLike:
+                "cognito-identity.amazonaws.com:amr": unauthenticated
+      Path: /
+      Policies:
+        - PolicyName: root
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - mobileanalytics:PutEvents
+                  - cognito-sync:*
+                Resource: !Sub 'arn:aws:cognito-identity:${AWS::Region}:${AWS::AccountId}:identitypool/${CognitoIdentityPool}'
+
+  WebCognitoUser:
+    Type: AWS::Cognito::UserPoolUser
+    Properties:
+      DesiredDeliveryMediums:
+        - EMAIL
+      ForceAliasCreation: True
+      UserAttributes:
+        - Name: email
+          Value: !Ref UserEmail
+        - Name: email_verified
+          Value: True
+      Username: !Ref UserName
+      UserPoolId: !Ref CognitoUserPool
+
+Outputs:
+  UserPoolID:
+    Value: !Ref CognitoUserPool
+  UserPoolURL:
+    Value: !GetAtt CognitoUserPool.ProviderURL
+  IdentityPoolId:
+    Value: !Sub '${CognitoIdentityPool}'
+  AppClientId:
+    Value: !Ref CognitoUserPoolClient
+  AuthenticatedUserRoleName:
+    Value: !Ref AuthenticatedUserRole
+  UnauthenticatedUserRoleName:
+    Value: !Ref UnauthenticatedUserRole

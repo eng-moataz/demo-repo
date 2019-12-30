@@ -1,0 +1,353 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: "API Gateway and Lambda resources stack creation"
+Parameters:
+  AuthenticatedUserRoleName:
+    Type: String
+  UnauthenticatedUserRoleName:
+    Type: String
+  FunctionName:
+    Type: String
+    Default: Analytics-Dynamodb-Function-01
+  UserPoolID:
+    Type: String
+  MetricTable:
+    Type: String
+
+Resources:
+  PolicyAPIGWerest01Api:
+    DependsOn: restapi01
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: PolicyAPIGWrestapi01auth
+      Roles:
+         - !Ref AuthenticatedUserRoleName
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - execute-api:Invoke
+            Resource:
+              - !Join
+                - ''
+                - - 'arn:aws:execute-api:'
+                  - !Ref 'AWS::Region'
+                  - ':'
+                  - !Ref 'AWS::AccountId'
+                  - ':'
+                  - !Ref 'restapi01'
+                  - /
+                  - Prod
+                  - /GET
+                  - /*
+              - !Join
+                - ''
+                - - 'arn:aws:execute-api:'
+                  - !Ref 'AWS::Region'
+                  - ':'
+                  - !Ref 'AWS::AccountId'
+                  - ':'
+                  - !Ref 'restapi01'
+                  - /
+                  - Prod
+                  - /GET
+                  - /
+  restapi01:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Description: ''
+      Name: restapi01
+      Body:
+        swagger: '2.0'
+        info:
+          version: '2018-05-24T17:52:00Z'
+          title: restapi01
+        host: !Join
+          - ''
+          - - apigateway.
+            - !Ref 'AWS::Region'
+            - .amazonaws.com
+        basePath: /Prod
+        schemes:
+          - https
+        paths:
+          /:
+            options:
+              consumes:
+                - application/json
+              produces:
+                - application/json
+              responses:
+                '200':
+                  description: 200 response
+                  headers:
+                    Access-Control-Allow-Origin:
+                      type: string
+                    Access-Control-Allow-Methods:
+                      type: string
+                    Access-Control-Allow-Headers:
+                      type: string
+              x-amazon-apigateway-integration:
+                responses:
+                  default:
+                    statusCode: '200'
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Methods: '''DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'''
+                      method.response.header.Access-Control-Allow-Headers: '''Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'''
+                      method.response.header.Access-Control-Allow-Origin: '''*'''
+                requestTemplates:
+                  application/json: '{"statusCode": 200}'
+                passthroughBehavior: when_no_match
+                type: mock
+            x-amazon-apigateway-any-method:
+              consumes:
+                - application/json
+              produces:
+                - application/json
+              parameters:
+                - in: body
+                  name: RequestSchema
+                  required: false
+                  schema:
+                    $ref: '#/definitions/RequestSchema'
+              responses:
+                '200':
+                  description: 200 response
+                  schema:
+                    $ref: '#/definitions/ResponseSchema'
+              security:
+                - CognitoUserPoolAuthorizer: []
+              x-amazon-apigateway-integration:
+                responses:
+                  default:
+                    statusCode: '200'
+                uri: !Join
+                  - ''
+                  - - 'arn:aws:apigateway:'
+                    - !Ref 'AWS::Region'
+                    - :lambda:path/2015-03-31/functions/
+                    - !GetAtt LambdaFunction.Arn
+                    - /invocations
+                passthroughBehavior: when_no_match
+                httpMethod: POST
+                type: aws_proxy
+          /{proxy+}:
+            options:
+              consumes:
+                - application/json
+              produces:
+                - application/json
+              responses:
+                '200':
+                  description: 200 response
+                  headers:
+                    Access-Control-Allow-Origin:
+                      type: string
+                    Access-Control-Allow-Methods:
+                      type: string
+                    Access-Control-Allow-Headers:
+                      type: string
+              x-amazon-apigateway-integration:
+                responses:
+                  default:
+                    statusCode: '200'
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Methods: '''DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'''
+                      method.response.header.Access-Control-Allow-Headers: '''Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'''
+                      method.response.header.Access-Control-Allow-Origin: '''*'''
+                requestTemplates:
+                  application/json: '{"statusCode": 200}'
+                passthroughBehavior: when_no_match
+                type: mock
+            x-amazon-apigateway-any-method:
+              consumes:
+                - application/json
+              produces:
+                - application/json
+              parameters:
+                - in: body
+                  name: RequestSchema
+                  required: false
+                  schema:
+                    $ref: '#/definitions/RequestSchema'
+              responses:
+                '200':
+                  description: 200 response
+                  schema:
+                    $ref: '#/definitions/ResponseSchema'
+              security:
+                - CognitoUserPoolAuthorizer: []
+              x-amazon-apigateway-integration:
+                responses:
+                  default:
+                    statusCode: '200'
+                uri: !Join
+                  - ''
+                  - - 'arn:aws:apigateway:'
+                    - !Ref 'AWS::Region'
+                    - :lambda:path/2015-03-31/functions/
+                    - !GetAtt LambdaFunction.Arn
+                    - /invocations
+                passthroughBehavior: when_no_match
+                httpMethod: POST
+                type: aws_proxy
+        securityDefinitions:
+          CognitoUserPoolAuthorizer:
+            type: apiKey
+            name: Authorization
+            in: header
+            x-amazon-apigateway-authtype: cognito_user_pools
+            x-amazon-apigateway-authorizer:
+                  type: cognito_user_pools
+                  providerARNs:
+                    - !Sub arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${UserPoolID}
+        definitions:
+          RequestSchema:
+            type: object
+            required:
+              - request
+            properties:
+              request:
+                type: string
+            title: Request Schema
+          ResponseSchema:
+            type: object
+            required:
+              - response
+            properties:
+              response:
+                type: string
+            title: Response Schema
+      FailOnWarnings: true
+  LambdaFunctionPermissionrestapi01:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdaFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Join
+        - ''
+        - - 'arn:aws:execute-api:'
+          - !Ref 'AWS::Region'
+          - ':'
+          - !Ref 'AWS::AccountId'
+          - ':'
+          - !Ref 'restapi01'
+          - /*/*/*
+  DeploymentAPIGWrestapi01:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      Description: The Development stage deployment of your API.
+      StageName: Prod
+      RestApiId: !Ref 'restapi01'
+  
+  LambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Ref FunctionName
+      Runtime: python3.7
+      Role: !GetAtt LambdaRole.Arn
+      Handler: index.lambda_handler
+      Timeout: 60
+      Environment:
+         Variables:
+           TableName: !Ref MetricTable
+      Code:
+        ZipFile: |
+            import json
+            import boto3
+            import os
+            from datetime import datetime
+            
+            
+            def getData(timestamp):
+              Keys= []
+              pages= {}
+              startTimeStamp= timestamp - 1800
+              for minute in range(startTimeStamp,timestamp ,60):
+                  Keys.append({"EVENTTIME": { 'N' : str(minute) } })
+              #print(Keys)
+              client = boto3.client('dynamodb')  
+              response = client.batch_get_item(
+                  RequestItems= { 
+                    os.environ['TableName'] : {
+                        "Keys" : Keys,
+                        "ProjectionExpression": "Pages"
+                      } 
+                  }
+              )
+              if response['Responses'][os.environ['TableName']]:
+                  for record in response['Responses'][os.environ['TableName']]:
+                      #print(record)
+                      locations= record['Pages']['M']
+                      #print(locations)
+                      for key, value in locations.items():
+                          if key in pages:
+                              oldvalue=int(pages[key])
+                              newvalue=int(value['N'])
+                              pages[key]= oldvalue + newvalue
+                          else:
+                              newvalue1=int(value['N'])
+                              pages[key]=newvalue1
+                  return pages
+            
+            def lambda_handler(event, context):
+                now = datetime.now().replace(second=0, microsecond=0)
+                timeStamp=int(datetime.timestamp(now))
+                newbody= getData(timeStamp)
+                print(newbody)
+                # TODO implement
+                return {
+                    'headers':{
+                      "Access-Control-Allow-Origin": "*" ,
+                      "Access-Control-Allow-Headers": "Content-Type",
+                      "Access-Control-Allow-Methods": "OPTIONS,POST,GET" 
+                    },
+                    'statusCode': 200,
+                    'body': json.dumps(newbody)
+                }
+
+      Description: Lambda created to scan the dynamodb.
+  
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                  - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: root
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:*
+                Resource: arn:aws:logs:*:*:*
+              - Effect: Allow
+                Action:
+                  - dynamodb:Scan
+                  - dynamodb:Query
+                  - dynamodb:BatchGetItem 
+                Resource: '*'
+Outputs:
+  RootUrl:
+    Description: Root URL of the API gateway
+    Value: !Join
+      - ''
+      - - https://
+        - !Ref 'restapi01'
+        - .execute-api.
+        - !Ref 'AWS::Region'
+        - .amazonaws.com/
+        - Prod
+  ApiName:
+    Description: API Friendly name
+    Value: restapi01

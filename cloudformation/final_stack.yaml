@@ -1,0 +1,105 @@
+Parameters:
+  GitHubUser:
+    Type: String
+  GitHubAccessToken:
+    Type: String
+  GitHubRepo:
+    Type: String
+  UserName:
+    Type: String
+  UserEmail:
+    Type: String
+Resources:
+  InfrastructureTemplate:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://s3.eu-west-1.amazonaws.com/demo-masterbuilder-moagaber/Artifacts/156e4972ed544f11e53fcd4359eafb43.template
+  CICDTemplate:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://s3.eu-west-1.amazonaws.com/demo-masterbuilder-moagaber/Artifacts/4e1398d532790fc7cfa8712a8f3624b8.template
+      Parameters:
+        GitHubUser:
+          Ref: GitHubUser
+        GitHubAccessToken:
+          Ref: GitHubAccessToken
+        GitHubRepo:
+          Ref: GitHubRepo
+        ClusterName:
+          Fn::GetAtt:
+          - InfrastructureTemplate
+          - Outputs.ClusterName
+        ServiceName:
+          Fn::GetAtt:
+          - InfrastructureTemplate
+          - Outputs.ServiceName
+  CognitoTemplate:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://s3.eu-west-1.amazonaws.com/demo-masterbuilder-moagaber/Artifacts/e31e28e77ee77b8e53935320edd344ac.template
+      Parameters:
+        UserName:
+          Ref: UserName
+        UserEmail:
+          Ref: UserEmail
+  ApiLambdaTemplate:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://s3.eu-west-1.amazonaws.com/demo-masterbuilder-moagaber/Artifacts/deb9b78edfc93eb90c9642f47c73da71.template
+      Parameters:
+        AuthenticatedUserRoleName:
+          Fn::GetAtt:
+          - CognitoTemplate
+          - Outputs.AuthenticatedUserRoleName
+        UnauthenticatedUserRoleName:
+          Fn::GetAtt:
+          - CognitoTemplate
+          - Outputs.UnauthenticatedUserRoleName
+        UserPoolID:
+          Fn::GetAtt:
+          - CognitoTemplate
+          - Outputs.UserPoolID
+        MetricTable:
+          Fn::GetAtt:
+          - KinesisTemplate1
+          - Outputs.MetricTable
+  KinesisTemplate1:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://s3.eu-west-1.amazonaws.com/demo-masterbuilder-moagaber/Artifacts/49f7a7a74e43e38cb7b917efb6b0923e.template
+      Parameters:
+        CWLogGroupName:
+          Fn::GetAtt:
+          - InfrastructureTemplate
+          - Outputs.CWLogGroupName
+  AnalyticsTemplate:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://s3.eu-west-1.amazonaws.com/demo-masterbuilder-moagaber/Artifacts/0d8be1370a2df8ec1d24b12749a20d2a.template
+      Parameters:
+        GitHubUser:
+          Ref: GitHubUser
+        GitHubAccessToken:
+          Ref: GitHubAccessToken
+        GitHubRepo:
+          Ref: GitHubRepo
+        USERPOOLID:
+          Fn::GetAtt:
+          - CognitoTemplate
+          - Outputs.UserPoolID
+        APPCLIENTID:
+          Fn::GetAtt:
+          - CognitoTemplate
+          - Outputs.AppClientId
+        IDENTITYPOOLID:
+          Fn::GetAtt:
+          - CognitoTemplate
+          - Outputs.IdentityPoolId
+        URL:
+          Fn::GetAtt:
+          - ApiLambdaTemplate
+          - Outputs.RootUrl
+        APINAME:
+          Fn::GetAtt:
+          - ApiLambdaTemplate
+          - Outputs.ApiName

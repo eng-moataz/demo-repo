@@ -1,0 +1,274 @@
+Parameters:
+  CWLogGroupName:
+    Type: String
+
+Resources:
+   FargateFilter:
+     Type: AWS::Logs::SubscriptionFilter
+     Properties: 
+       DestinationArn: !GetAtt KinesisFirehoseStream.Arn
+       FilterPattern: "[ip, user, username, timestamp, request, status_code, bytes]"
+       LogGroupName: !Ref CWLogGroupName
+       RoleArn: !GetAtt FilterRole.Arn
+   
+   FilterRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - !Sub logs.${AWS::Region}.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: KinesisInvoke
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: ''
+                Effect: Allow
+                Action:
+                  - firehose:*
+                Resource:
+                  - '*'
+              - Sid: ''
+                Effect: Allow
+                Action:
+                  - iam:PassRole
+                Resource:
+                  - '*'
+
+   KinesisFirehoseStream:
+    Type: AWS::KinesisFirehose::DeliveryStream
+    Properties:
+      DeliveryStreamType: DirectPut
+      ExtendedS3DestinationConfiguration:
+        BucketARN: !GetAtt BucketForLogs.Arn
+        Prefix: 'KinesisLogs'
+        BufferingHints:
+          IntervalInSeconds: '60'
+          SizeInMBs: '1'
+        CompressionFormat: GZIP
+        RoleARN: !GetAtt 'FireHoseRole.Arn'
+        ProcessingConfiguration:
+           Enabled: true
+           Processors:
+             - Type: Lambda
+               Parameters:
+                 - ParameterName: LambdaArn
+                   ParameterValue: !GetAtt NewPreprocessingLambda.Arn
+                   
+
+   FireHoseRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - firehose.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: s3Access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: ''
+                Effect: Allow
+                Action:
+                  - s3:AbortMultipartUpload
+                  - s3:GetBucketLocation
+                  - s3:GetObject
+                  - s3:ListBucket
+                  - s3:ListBucketMultipartUploads
+                  - s3:PutObject
+                Resource:
+                  - !Sub '${BucketForLogs.Arn}'
+                  - !Sub '${BucketForLogs.Arn}/*'
+              - Sid: ''
+                Effect: Allow
+                Action:
+                  - logs:PutLogEvents
+                Resource:
+                  - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/kinesisfirehose/*:log-stream:*'
+              - Sid: ''
+                Effect: Allow
+                Action:
+                  - Lambda:*
+                Resource:
+                  - !GetAtt NewPreprocessingLambda.Arn
+
+   BucketForLogs:
+     Type: AWS::S3::Bucket
+
+#---------------------------------------------------------
+   NewApproachTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: EVENTTIME
+          AttributeType: N
+      KeySchema:
+        - AttributeName: EVENTTIME
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      TableName: !Sub '${AWS::StackName}-NewApproachTable-1'
+      TimeToLiveSpecification:
+        AttributeName: EXPIRYTIME
+        Enabled: true
+  
+   NewPreprocessingLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub NewPreprocessingLambda-${AWS::AccountId}-${AWS::Region}
+      Runtime: python3.7
+      Role: !GetAtt NewPreprocessingLambdaRole.Arn
+      Handler: index.lambda_handler
+      Timeout: 60
+      Environment:
+         Variables:
+           TableName: !Ref NewApproachTable
+           Region: !Sub ${AWS::Region}
+      Code:
+        ZipFile: |
+          import json
+          import base64
+          import gzip
+          import os
+          import boto3
+          from datetime import datetime
+          
+          client2 = boto3.client('dynamodb', region_name=os.environ['Region'])
+          
+          def InsertIntoDynamo(data):
+              processingrecord=[]
+              Key={}
+              MYPAGENAME=''
+              MYPAGECOUNT=''
+              MYEXPIRYTIME=''
+              for entry in data:
+                  processingentry=json.loads(entry)
+                  for key in processingentry.keys():
+                       if key == 'timestamp': 
+                         time=datetime.strptime(processingentry[key], '%d/%b/%Y %H:%M:%S').replace(second=0)
+                         inttime1=int(datetime.timestamp(time))
+                         Key['EVENTTIME']= { 'N' : str(inttime1) }
+                         MYEXPIRYTIME= str(inttime1 + 86400)
+                       if key == 'request':
+                          MYPAGENAME = str(processingentry['request'])
+                          MYPAGECOUNT = "1"
+                  if MYPAGENAME != '' :
+                      try: 
+                            response = client2.update_item(
+                              TableName=os.environ['TableName'],
+                              Key=Key,
+                              UpdateExpression="SET Pages = if_not_exists(Pages, :p), EXPIRYTIME = :v",
+                              ExpressionAttributeValues={":v": { "N": MYEXPIRYTIME }, ":p": { "M": {} }}
+                              )
+                            response1 = client2.update_item(
+                              TableName=os.environ['TableName'],
+                              Key=Key,
+                              UpdateExpression="ADD Pages.#page :count",
+                              ExpressionAttributeNames={"#page": MYPAGENAME  },
+                              ExpressionAttributeValues={":count": { "N": MYPAGECOUNT }},
+                            )
+                      except Exception as e:
+                              print(e)
+          
+          def processrecord(record):
+              data=[]
+              try:
+                 compressed_payload = base64.b64decode(record['data'])
+                 uncompressed_payload = gzip.decompress(compressed_payload)
+                 payload = json.loads(uncompressed_payload.decode('utf-8'))
+                 if payload['messageType']=='CONTROL_MESSAGE':
+                      return {
+                          'result': 'Dropped',
+                          'recordId': record['recordId']
+                      }
+                 events=payload['logEvents']
+                 for event in events:
+                     child_record=event['extractedFields']
+                     for key in child_record.keys():
+                        if key=='request':
+                          page=child_record[key].split(" ")
+                          child_record[key]=page[1]
+                     data.append(json.dumps(child_record))
+                 InsertIntoDynamo(data)
+                 return_data=",".join(data)
+                 bytes=return_data.encode('utf-8')
+                 return {
+                          "recordId": record['recordId'],
+                          "result": 'Ok',
+                          "data": base64.b64encode(bytes).decode("utf")
+                      }
+              except Exception as e:
+                 print(e)
+                 return {
+                          "recordId" : record['recordId'],
+                          "result" : 'ProcessingFailed',
+                          "data": record['data']
+                      }
+          
+          
+          def lambda_handler(event, context):
+              records=[]
+              InsertedRecords=[]
+              # TODO implement
+              print('Loading Function')
+              for record in event['records']:
+                 records.append(processrecord(record))
+              return {
+                "records": records
+              }
+
+      Description: Lambda to process the records for firehose and inject them into Dynamo.
+
+   NewPreprocessingLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                  - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: root
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:*
+                Resource: '*'
+              - Sid: ReadInputStream
+                Effect: Allow
+                Action:
+                  - firehose:*
+                Resource: '*'
+              - Sid: LisInputStream
+                Effect: Allow
+                Action:
+                  - firehose:*
+                Resource: '*'
+              - Sid: WriteOutputStram
+                Effect: Allow
+                Action:
+                  - kinesis:*
+                  - dynamodb:*
+                Resource: '*'
+
+Outputs:
+   MetricTable:
+       Value: !Ref NewApproachTable
