@@ -82,7 +82,7 @@ getColor(key, object) {
       var state={};
       for (const [key, value] of Object.entries(reply)) {
                labels.push(key);
-               if(key == '/'){
+               if(key === '/'){
                  data.push(Math.round(value/10));
                }
                else{
@@ -102,8 +102,6 @@ getColor(key, object) {
     const loading = this.state.Loading;
     const height=200;
     const width=200;
-    const Dheight=300;
-    const Dwidth=300;
     return(
         <div className="DoghnutChart">
                <h2>Top Pages Stream</h2>

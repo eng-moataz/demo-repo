@@ -57,7 +57,7 @@ class BarChart extends React.Component {
       var indata=[]
       for (const [key, value] of Object.entries(reply)) {
                inlabels.push(key);
-               if(key == '/'){
+               if(key === '/'){
                  indata.push(Math.round(value/10));
                }
                else{
