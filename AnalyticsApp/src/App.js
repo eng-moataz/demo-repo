@@ -1,8 +1,7 @@
 import React from 'react';
-import { Authenticator } from 'aws-amplify-react';
 import { BrowserRouter as Router, Route, Switch } from "react-router-dom";
 import Home from './Home';
-import { ConfirmSignIn, ForgotPassword, RequireNewPassword, SignIn, withAuthenticator,  } from 'aws-amplify-react';
+import { ConfirmSignIn, ForgotPassword, RequireNewPassword, SignIn, withAuthenticator, Authenticator  } from 'aws-amplify-react';
 import NotFound from './NotFound';
 import './App.css';
 
