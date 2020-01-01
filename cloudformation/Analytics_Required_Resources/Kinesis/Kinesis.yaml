@@ -147,86 +147,85 @@ Resources:
           client2 = boto3.client('dynamodb', region_name=os.environ['Region'])
           
           def InsertIntoDynamo(data):
-              processingrecord=[]
-              Key={}
-              MYPAGENAME=''
-              MYPAGECOUNT=''
-              MYEXPIRYTIME=''
-              for entry in data:
-                  processingentry=json.loads(entry)
-                  for key in processingentry.keys():
-                       if key == 'timestamp': 
-                         time=datetime.strptime(processingentry[key], '%d/%b/%Y %H:%M:%S').replace(second=0)
-                         inttime1=int(datetime.timestamp(time))
-                         Key['EVENTTIME']= { 'N' : str(inttime1) }
-                         MYEXPIRYTIME= str(inttime1 + 86400)
-                       if key == 'request':
-                          MYPAGENAME = str(processingentry['request'])
-                          MYPAGECOUNT = "1"
-                  if MYPAGENAME != '' :
-                      try: 
-                            response = client2.update_item(
-                              TableName=os.environ['TableName'],
-                              Key=Key,
-                              UpdateExpression="SET Pages = if_not_exists(Pages, :p), EXPIRYTIME = :v",
-                              ExpressionAttributeValues={":v": { "N": MYEXPIRYTIME }, ":p": { "M": {} }}
-                              )
-                            response1 = client2.update_item(
-                              TableName=os.environ['TableName'],
-                              Key=Key,
-                              UpdateExpression="ADD Pages.#page :count",
-                              ExpressionAttributeNames={"#page": MYPAGENAME  },
-                              ExpressionAttributeValues={":count": { "N": MYPAGECOUNT }},
+            processingrecord=[]
+            Key={}
+            MYPAGENAME=''
+            MYPAGECOUNT=''
+            MYEXPIRYTIME=''
+            for entry in data:
+                processingentry=entry
+                for key in processingentry.keys():
+                     if key == 'timestamp': 
+                       time=datetime.strptime(processingentry[key], '%d/%b/%Y %H:%M:%S').replace(second=0)
+                       inttime1=int(datetime.timestamp(time))
+                       Key['EVENTTIME']= { 'N' : str(inttime1) }
+                       MYEXPIRYTIME= str(inttime1 + 86400)
+                     if key == 'request':
+                        MYPAGENAME = str(processingentry['request'])
+                        MYPAGECOUNT = "1"
+                if MYPAGENAME != '' :
+                    try: 
+                          response = client2.update_item(
+                            TableName=os.environ['TableName'],
+                            Key=Key,
+                            UpdateExpression="SET Pages = if_not_exists(Pages, :p), EXPIRYTIME = :v",
+                            ExpressionAttributeValues={":v": { "N": MYEXPIRYTIME }, ":p": { "M": {} }}
                             )
-                      except Exception as e:
-                              print(e)
+                          response1 = client2.update_item(
+                            TableName=os.environ['TableName'],
+                            Key=Key,
+                            UpdateExpression="ADD Pages.#page :count",
+                            ExpressionAttributeNames={"#page": MYPAGENAME  },
+                            ExpressionAttributeValues={":count": { "N": MYPAGECOUNT }},
+                          )
+                    except Exception as e:
+                            print(e)
           
           def processrecord(record):
-              data=[]
-              try:
-                 compressed_payload = base64.b64decode(record['data'])
-                 uncompressed_payload = gzip.decompress(compressed_payload)
-                 payload = json.loads(uncompressed_payload.decode('utf-8'))
-                 if payload['messageType']=='CONTROL_MESSAGE':
-                      return {
-                          'result': 'Dropped',
-                          'recordId': record['recordId']
-                      }
-                 events=payload['logEvents']
-                 for event in events:
-                     child_record=event['extractedFields']
-                     for key in child_record.keys():
-                        if key=='request':
-                          page=child_record[key].split(" ")
-                          child_record[key]=page[1]
-                     data.append(json.dumps(child_record))
-                 InsertIntoDynamo(data)
-                 return_data=",".join(data)
-                 bytes=return_data.encode('utf-8')
-                 return {
-                          "recordId": record['recordId'],
-                          "result": 'Ok',
-                          "data": base64.b64encode(bytes).decode("utf")
-                      }
-              except Exception as e:
-                 print(e)
-                 return {
-                          "recordId" : record['recordId'],
-                          "result" : 'ProcessingFailed',
-                          "data": record['data']
-                      }
+            data=[]
+            try:
+               compressed_payload = base64.b64decode(record['data'])
+               uncompressed_payload = gzip.decompress(compressed_payload)
+               payload = json.loads(uncompressed_payload.decode('utf-8'))
+               if payload['messageType']=='CONTROL_MESSAGE':
+                    return {
+                        'result': 'Dropped',
+                        'recordId': record['recordId']
+                    }
+               events=payload['logEvents']
+               for event in events:
+                   child_record=event['extractedFields']
+                   for key in child_record.keys():
+                      if key=='request':
+                        page=child_record[key].split(" ")
+                        child_record[key]=page[1]
+                   data.append(child_record)
+               InsertIntoDynamo(data)
+               bytes=json.dumps(data).encode('utf-8')
+               return {
+                        "recordId": record['recordId'],
+                        "result": 'Ok',
+                        "data": base64.b64encode(bytes).decode("utf")
+                    }
+            except Exception as e:
+               print(e)
+               return {
+                        "recordId" : record['recordId'],
+                        "result" : 'ProcessingFailed',
+                        "data": record['data']
+                    }
           
           
           def lambda_handler(event, context):
-              records=[]
-              InsertedRecords=[]
-              # TODO implement
-              print('Loading Function')
-              for record in event['records']:
-                 records.append(processrecord(record))
-              return {
-                "records": records
-              }
+            records=[]
+            InsertedRecords=[]
+            # TODO implement
+            print('Loading Function')
+            for record in event['records']:
+               records.append(processrecord(record))
+            return {
+              "records": records
+            }
 
       Description: Lambda to process the records for firehose and inject them into Dynamo.
 
